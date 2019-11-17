@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- id 唯一标识；指定为接口的全类名 namespace 名称空间； resultType 返回值类型； #{id}从传递过来的参数中取id -->
+<mapper namespace="com.fight.edu.dao.BookDao">
+	<!-- 缓存配置 -->
+	<cache eviction="LRU" flushInterval="30000" size="512"
+		readOnly="true" />
+	<!-- insert 在此元素内写增加的sql语句，parameterType:参数类型 -->
+	<!-- sql语句中传入的参数类型用#{xx} -->
+	<!-- useGeneratedKeys="true" keyProperty="id" 获取自增主键并存入id中 -->
+	<!-- 插入单个乘客信息 -->
+	<insert id="save"
+		parameterType="com.fight.edu.entity.BookTickets"
+		useGeneratedKeys="true" keyProperty="id">
+		insert into
+		tab_book(id,name,username,sex,plane_id,fight_id,pastype,isbefore,iswindow,isasile,isgate,booktime)values
+		(#{id},#{name},#{user},#{sex},#{plane_id},#{fight_id},#{pastype},#{isbefore},#{iswindow},#{isasile},#{isgate},#{booktime})
+		<!-- where not exists(select name from tab_book where username=#{user}) -->
+	</insert>
+    <!-- 插入一组乘客信息 -->
+	<insert id="saveTeam"
+		parameterType="com.fight.edu.entity.BookTickets"
+		useGeneratedKeys="true" keyProperty="id">
+		insert into
+		tab_book(id,name,username,sex,plane_id,fight_id,pastype,isbefore,iswindow,isasile,isgate,booktime)values
+		(#{id},#{name},#{user},#{sex},#{plane_id},#{fight_id},#{pastype},#{isbefore},#{iswindow},#{isasile},#{isgate},#{booktime})
+	</insert>
+
+
+	<!-- select元素，在此元素中写查询语句 -->
+	<select id="findAll"
+		resultType="com.fight.edu.entity.BookTickets">
+		select * from tab_book
+	</select>
+     <!-- 查询不满足需求的用户名，姓名和需求 -->
+     <select id="findunConNotes"
+		resultType="com.fight.edu.entity.BookTickets">
+		select * from tab_book where iscontent=0
+	</select>
+	 <!--  查询该用户所有不满足需求记录 -->
+    <select id="findunContentAll" parameterType="map"
+		resultType="com.fight.edu.entity.BookTickets">
+		select * from tab_book where  iscontent=0 and  username=#{username} 
+	</select>
+	<!-- statementType="STATEMENT" -->
+	<!-- 查询符合需求的座位 -->
+	<select id="findByType" parameterType="map"
+		resultType="com.fight.edu.entity.Seties" statementType="STATEMENT">
+		select id from ${tab}
+		<where>
+		<if test="isbefore!=null">
+			ischoose=0
+		</if>
+		<if test="isbefore!=null">
+			and isbefore=${isbefore}
+		</if>
+		<if test="iswindow!=null">
+			and iswindow=${iswindow}
+		</if>
+		<if test="isasile!=null">
+			and isasile=${isasile}
+		</if>
+		<if test="isgate!=null">
+			and isgate=${isgate}
+		</if>
+		</where>
+		ORDER BY id
+	</select>
+	<!-- 查询就近满足需求座位 -->
+	<select id="findCloseByType" parameterType="map"
+		resultType="com.fight.edu.entity.Seties" statementType="STATEMENT">
+		select id from ${tab} where ischoose=0 and id<![CDATA[ >= ]]> ${id+8} and id<![CDATA[ <= ]]> ${id-8} and id <![CDATA[ > ]]> 0
+		<if test="isbefore!=null">
+			and isbefore=${isbefore}
+		</if>
+		<if test="iswindow!=null">
+			and iswindow=${iswindow}
+		</if>
+		<if test="isasile!=null">
+			and isasile=${isasile}
+		</if>
+		<if test="isgate!=null">
+			and isgate=${isgate}
+		</if>
+		ORDER BY id
+	</select>
+	<!-- 查询不满足需求的座位 -->
+	<select id="findOther" parameterType="map"
+		resultType="com.fight.edu.entity.Seties" statementType="STATEMENT">
+		select id from ${tab} where ischoose=0 and(isbefore=${isbefore} or iswindow=${iswindow}
+		 or isasile=${isasile} or isgate=${isgate}) ORDER BY id
+	</select>
+	<!-- 查询不满足需求就近座位 and(isbefore=${isbefore} or iswindow=${iswindow}or isasile=${isasile} or isgate=${isgate}) ORDER BY id-->
+	<select id="findunContentOther" parameterType="map"
+		resultType="com.fight.edu.entity.Seties" statementType="STATEMENT">
+		select id from ${tab} where ischoose=0 and id<![CDATA[ >= ]]>${id+8} and id<![CDATA[ <= ]]> ${id-8} and id <![CDATA[ > ]]> 0
+		
+	    <if test="isbefore!=null">
+			and isbefore=${isbefore}
+		</if>
+		<if test="iswindow!=null">
+			and iswindow=${iswindow}
+		</if>
+		<if test="isasile!=null">
+			and isasile=${isasile}
+		</if>
+		<if test="isgate!=null">
+			and isgate=${isgate}
+		</if>
+		ORDER BY id
+	</select>
+	
+	<!-- 查询插入用户最后一条记录的class_id -->
+	<select id="findLast" parameterType="map" resultType="int">
+		select class_id from tab_book where username=#{username} order by id desc
+		limit 1;
+	</select>
+
+	<!-- 更新座位 -->
+	<update id="updateId"
+		parameterType="com.fight.edu.entity.BookTickets">
+		update tab_book set class_id=#{id} where name=#{name} and username=#{user}
+	</update>
+
+
+	<!-- 改变座位选择状态 -->
+	<update id="changeChoose" parameterType="map">
+		update ${tab} set ischoose=1 where id=#{id}
+	</update>
+	<update id="changeChoosed" parameterType="map">
+
+		update ${tab} set ischoose=0 where id=#{id}
+	</update>
+
+	<!-- 查询某型号飞机的所有乘客记录 -->
+	<select id="selectPlaneId" parameterType="map"
+		resultType="com.fight.edu.entity.BookTickets">
+		select * from tab_book where plane_id=#{tab}
+	</select>
+	<!-- 查询用户购票记录 -->
+	<select id="findUserAll" parameterType="map"
+		resultType="com.fight.edu.entity.BookTickets">
+		select * from tab_book where username=#{username}
+	</select>
+
+	<!-- 整组换机 -->
+	<update id="changePlaneId" parameterType="map">
+		update tab_book set plane_id=#{tab2} where plane_id=#{tab1}
+	</update>
+
+	<!-- 满足需求 -->
+	<update id="updateContent" parameterType="map">
+		update tab_book set iscontent=1 where name=#{name} and username=#{username}
+	</update>
+	<!-- 不满足需求 -->
+	<update id="updateunContent" parameterType="map">
+		update tab_book set iscontent=0 where name=#{name} and username=#{username}
+	</update>
+	<!-- 情景二的动态sql -->
+	<update id="dynamicUpdate">
+		update tab_book
+		<set>
+			<if test="class_id==null">
+				class_id=#{id}
+			</if>
+		</set>
+		where isbefore=#{isbefore} and iswindow=#{iswindow} and
+		isgate=#{isgate} and isasile=#{isasile}
+	</update>
+	<!-- 关联查询，一对多关系 -->
+	 <select id="findUnion" parameterType="map"
+	  resultMap="bookMap" statementType="STATEMENT">
+	 	select mm.id,mm.name,mm.username,mm.plane_id,mm.fight_id,mm.class_id,mma.id,mma.row,mma.column from
+	 	tab_book mm join ${tab} mma 
+	 	on mm.class_id=mma.id 
+	 	where mm.username=${user}
+	 </select>
+	 <resultMap
+	  type="com.fight.edu.entity.BookTickets" 
+	  id="bookMap">
+	 	<id property="id" column="id"/>
+	 	<result property="name" column="name"/>
+	 	<result property="user" column="username"/>
+	 	<result property="plane_id" column="plane_id"/>
+	 	<result property="fight_id" column="fight_id"/>
+	 	<result property="class_id" column="class_id"/>
+	 	<result property="isbefore" column="isbefore"/>
+	 	<result property="iswindow" column="iswindow"/>
+	 	<result property="isasile" column="isasile"/>
+	 	<result property="isgate" column="isgate"/>
+	 	<!-- "一对多"关系用collection元素 -->
+	 	<collection property="seties" javaType="java.util.List"
+	 	 ofType="com.fight.edu.entity.Seties">
+	 	 	<id property="id" column="id"/>
+			<result property="row" column="row"/>
+			<result property="column" column="column"/>
+	 	 </collection>
+	 </resultMap>
+</mapper>
